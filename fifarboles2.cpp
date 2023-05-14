@@ -5,6 +5,8 @@
 #include <vector>
 #include <string.h>
 
+using namespace std;
+
 struct corredor
 {
 	char nombre[30];
@@ -18,58 +20,57 @@ int num_corredores;
 
 struct promedio
 {
-	corredor *corredor;
+	corredor corredor;
 	promedio *irq;
 	promedio *der;
-}
+};
 
 promedio *arbol = NULL;
-void insertarNodo(promedio *&, corredor);
-promedio *crearNodo(corredor);
 
-void insertarNodo(promedio *&arbol, corredor *data)
+void insertarNodo(promedio *&arbol, corredor aux_)
 {
+	
 	if(arbol == NULL)
 	{
-		promedio *nuevo_nodo = *crearNodo(data);
-		arbol = nuevo_nodo;
+		promedio *yoquese = new promedio();
+		
+		yoquese->corredor = aux_;
+		yoquese->irq = NULL;
+		yoquese->der = NULL; 
+		arbol = yoquese;
+		
 	}
 	else
 	{
-		corredor *valor = arbol->corredor;
-		if(data->promedio < valor->promedio)
+		
+		if(aux_.promedio < arbol->corredor.promedio)
 		{
-			insertarNodo(arbol->irq, data);
+			insertarNodo(arbol->irq, aux_);
+					
 		}
-		else
+		else if(aux_.promedio > arbol->corredor.promedio)
 		{
-			insertarNodo(arbol->der, data);
-		}
+			insertarNodo(arbol->der, aux_);
+		}	
+		
 	}
 	
 }
 
-promedio *crearNodo(corredor *data)
-{
-	promedio *nuevo_nodo = new promedio();
-	
-	nuevo_nodo->corredor = corredor;
-	nuevo_nodo->der = NULL;
-	nuevo_nodo->irq = NULL;
-	
-	return nuevo_nodo;
-}
 
-void mostrar_promedio(corredor *data)
+void mostrar_promedio(promedio *arbol_) 
 {
-	promedio *aux_arbol = new promedio();
-	if(aux_arbol->irq != NULL)
+
+	if(arbol_->irq != NULL)
 	{
-		for(aux_arbol; aux_arbol != NULL ; aux_arbol=aux_arbol->irq)
-		{
-			if(au)
-		}
+		mostrar_promedio(arbol_->irq);
 	}
+	cout<<"nombre: "<<arbol_->corredor.nombre<<endl<<"promedio: "<<arbol_->corredor.promedio<<endl;
+	if(arbol_->der != NULL)
+	{
+		mostrar_promedio(arbol_->der);
+	}
+	
 }
 
 
@@ -137,7 +138,9 @@ void hacer_prueba()
 			primero->tiempo = menorTiempo;
 			aux_prom=aux_prom/v;
 			primero->promedio = aux_prom;
-			insertarNodo(arbol,primero);
+			
+			insertarNodo(arbol, *primero);
+			
 			encontrado = true;
 			cout<<endl;
 			system("pause");
@@ -173,6 +176,7 @@ void mostrar_corredores()
 
 int main()
 {
+	
 	int op;
 	do
 	{
@@ -185,20 +189,22 @@ int main()
 		{
 			case 1:
 				ingresar_corredor();
-			break;
+				break;
 			
 			case 2:
 				mostrar_corredores();
-			break;
+				break;
 			
 			case 3:
 				hacer_prueba();
 				break;
 			case 4:
-				mostrar_promedio();
+				system("cls");
+				mostrar_promedio(arbol);
+				system("pause");
 				break;
 			case 5:
-				mostrar_tiempos();
+				//mostrar_tiempos();
 				break;
 			default:
 				system("cls");
