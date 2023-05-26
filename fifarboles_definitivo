@@ -1,0 +1,501 @@
+#include <conio.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include <iostream>
+#include <vector>
+#include <string.h>
+
+using namespace std;
+
+struct corredor
+{
+	char nombre[30];
+	int num,num_vueltas = 0;
+	float promedio;
+	float tiempo = 0;
+	int inArbol = 0;
+	corredor *siguiente;
+};
+corredor *primero, *aux, *lifo, *fifo; //= NULL;
+int num_corredores;
+
+//funciones
+
+
+struct promedio
+{
+	corredor corredor;
+	promedio *irq;
+	promedio *der;
+	int nivel, peso_izq, peso_der, equilibrio;
+};
+
+promedio *arbol = NULL, *ultimo_nodo;
+int num_nodos;
+
+//funciones
+void calcularNiveles(promedio *);
+void seleccion_de_rotacion(promedio *&);
+void rotacion_izquierda(promedio *&, promedio *);
+void pegar_nodo_para_rotacion_compleja(promedio *&, promedio *);
+
+int movimientos = 0;
+void insertarNodo(promedio *&arbol, corredor aux_)
+{
+	if(arbol == NULL)
+	{
+		promedio *cagadaAuxiliar = new promedio();
+		cagadaAuxiliar->corredor = aux_;
+		cagadaAuxiliar->irq = NULL;
+		cagadaAuxiliar->der = NULL;
+		cagadaAuxiliar->nivel = movimientos;
+		arbol = cagadaAuxiliar;
+		cagadaAuxiliar = NULL;
+		free(cagadaAuxiliar);
+		movimientos = 0;
+	}
+	else
+	{
+		if(aux_.promedio < arbol->corredor.promedio)
+		{
+			movimientos++;
+			insertarNodo(arbol->irq, aux_);
+					
+		}
+		else if(aux_.promedio > arbol->corredor.promedio)
+		{
+			movimientos++;
+			insertarNodo(arbol->der, aux_);
+		}	
+		
+	}
+	
+}
+
+
+int nivel_mas_bajo = 0;
+void calcularNiveles(promedio *arbol_)
+{
+	if(arbol_->irq != NULL) calcularNiveles(arbol_->irq);
+	
+	if(arbol_->nivel > nivel_mas_bajo) nivel_mas_bajo = arbol_->nivel;
+	
+	if(arbol_->der != NULL) calcularNiveles(arbol_->der);
+	
+	if(arbol_->nivel > nivel_mas_bajo) nivel_mas_bajo = arbol_->nivel;
+	
+}
+
+void actualizarNivelDeNodos(promedio *&arbol_)
+{
+
+	if(arbol_->irq != NULL) 
+	{
+		arbol_->irq->nivel = arbol_->nivel + 1;
+		actualizarNivelDeNodos(arbol_->irq);
+	}
+	if(arbol_->der != NULL) 
+	{
+		arbol_->der->nivel = arbol_->nivel + 1;
+		actualizarNivelDeNodos(arbol_->der);
+	}
+		
+}
+
+void desprender_nodo(promedio *&arbol_, promedio *nodo_a_desprender, int direccion) //direccion: (0 para izquierda, 1 para derecha) 
+{
+	
+	if(nodo_a_desprender->corredor.promedio < arbol_->corredor.promedio)
+	{
+		if(arbol_->irq = nodo_a_desprender)
+		{
+			if(direccion == 1) 
+			{
+				arbol_->irq = arbol_->irq->der;	
+				cout<<endl<<"desprendiendo nodo";
+			}
+			else arbol_->irq = arbol_->irq->irq;
+		}
+		else desprender_nodo(arbol_->irq, nodo_a_desprender, direccion);
+	}
+	else
+	{
+		if(arbol_->der = nodo_a_desprender)
+		{
+			if(direccion == 1) arbol_->der = arbol_->der->der;
+			else arbol_->der = arbol_->der->irq;
+		}
+		else desprender_nodo(arbol_->der, nodo_a_desprender, direccion);
+	}
+}
+
+void rotacion_signo_mayor(promedio *&arbol_, promedio *aux)
+{
+
+	if(arbol_->irq != NULL) rotacion_signo_mayor(arbol_->irq, aux);
+	else 
+	{
+		desprender_nodo(arbol, aux, 1); //el 1 en el parámetro corresponde a la direccion en la que se encuentra el nodo que se requiere pegar a 
+		aux->der=NULL;					//la cabeza del nodo a desprender, con respecto al nodo que se quiere desprender, 
+		arbol_->irq = aux;				//0 para izquierda y 1 para derecha.
+		
+	}
+	
+}
+
+void rotacion_signo_menor(promedio *&arbol_, promedio *aux)
+{
+
+	if(arbol_->der != NULL) rotacion_signo_menor(arbol_->der, aux);
+	else 
+	{
+		desprender_nodo(arbol, aux, 0);	//el 0 en el parámetro corresponde a la direccion en la que se encuentra el nodo que se requiere pegar a 
+		aux->irq=NULL;					//la cabeza del nodo a desprender, con respecto al nodo que se requiere desprender, 
+		arbol_->der = aux;				//0 para izquierda y 1 para derecha.
+		
+	}
+	
+}
+
+void rotacion_barra_inclinada_izquierda(promedio *&arbol_, promedio *aux)
+{
+
+	desprender_nodo(arbol, aux, 1);	//el 1 en el parámetro corresponde a la direccion en la que se encuentra el nodo que se requiere pegar a 
+	aux->der=NULL;					//la cabeza del nodo a desprender, con respecto al nodo que se requiere desprender, 
+	arbol_->irq = aux;				//0 para izquierda y 1 para derecha.				
+}
+
+void rotacion_barra_inclinada_derecha(promedio *&arbol_, promedio *aux)
+{
+
+	desprender_nodo(arbol, aux, 0);	//el 0 en el parámetro corresponde a la direccion en la que se encuentra el nodo que se requiere pegar a 
+	aux->irq=NULL;					//la cabeza del nodo a desprender, con respecto al nodo que se requiere desprender, 
+	arbol_->der = aux;				//0 para izquierda y 1 para derecha.
+				
+}
+
+promedio *nodo_mas_bajo;
+
+void balanceo(promedio *&arbol_)
+{
+	if(arbol_ == nodo_mas_bajo)
+	{
+		if(arbol_->peso_der > arbol_->peso_izq)
+		{
+			if((arbol_->der != NULL) && (arbol_->der->irq != NULL))
+			{
+				rotacion_signo_mayor(arbol_->der->irq, arbol_);
+			}
+			
+			else if((arbol_->der != NULL) && (arbol_->der->der != NULL))
+			{
+				rotacion_barra_inclinada_izquierda(arbol_->der, arbol_);
+			}
+			
+		}
+		else if(arbol_->peso_izq > arbol_->peso_der)
+		{
+			if((arbol_->irq != NULL) && (arbol_->irq->der != NULL))
+			{
+				rotacion_signo_menor(arbol_->irq->der, arbol_);
+				
+			}
+			else if((arbol_->irq != NULL) && (arbol_->irq->irq != NULL))
+			{
+				rotacion_barra_inclinada_derecha(arbol_->irq, arbol_);
+			}
+		}
+	}
+	else
+	{
+		if(arbol_->irq != NULL) balanceo(arbol_->irq);
+		
+		if(arbol_->der != NULL) balanceo(arbol_->der);
+	}
+}
+
+bool bool_hay_desequilibrio = false;
+
+int yoquese = 0;
+
+void calcular_equilibrio(promedio *&arbol_)
+{
+	if(arbol_->irq != NULL) calcular_equilibrio(arbol_->irq);
+	
+	int niveles_izq = 0, niveles_der = 0, equilibrio = 0;
+	
+	if(arbol_->irq != NULL)
+	{
+		calcularNiveles(arbol_->irq);
+		niveles_izq = (nivel_mas_bajo - arbol_->nivel);
+		arbol_->peso_izq = niveles_izq;
+		nivel_mas_bajo = 0;
+	} 
+	else
+	{
+		niveles_izq = 0;
+		arbol_->peso_izq = niveles_izq;	
+	}
+	
+	if(arbol_->der != NULL)
+	{
+		calcularNiveles(arbol_->der);
+		niveles_der = (nivel_mas_bajo - arbol_->nivel);
+		arbol_->peso_der = niveles_der;
+		nivel_mas_bajo = 0;
+	}
+	else 
+	{
+		niveles_der = 0;
+		arbol_->peso_der = niveles_der;
+	}
+	
+	equilibrio =  niveles_izq - niveles_der;
+	arbol_->equilibrio = equilibrio;
+	
+	if( arbol_->equilibrio > 1 || arbol_->equilibrio < -1) 
+	{
+		if(arbol_->nivel > yoquese)
+		{
+			nodo_mas_bajo = arbol_;
+			yoquese = arbol_->nivel;
+		}	
+		bool_hay_desequilibrio = true;	
+	}
+	
+	if(arbol_->der != NULL) calcular_equilibrio(arbol_->der);
+
+}
+
+void mostrar_promedio(promedio *arbol_) 
+{
+
+	if(arbol_->irq != NULL)
+	{
+		mostrar_promedio(arbol_->irq);
+	}
+	cout<<"nombre: "<<arbol_->corredor.nombre<<endl<<"promedio: "<<arbol_->corredor.promedio<<endl<<endl;
+	
+	if(arbol_->der != NULL)
+	{
+		mostrar_promedio(arbol_->der);
+	}
+	
+}
+
+void actualizarPromedio(promedio *&arbol_, int num, double prom)
+{
+	if(arbol_->irq != NULL)
+	{
+		actualizarPromedio(arbol_->irq, num, prom);
+	}
+	
+	if(arbol->corredor.num = num) arbol->corredor.promedio += prom;
+	
+	else if(arbol_->der != NULL)
+	{
+		actualizarPromedio(arbol_->der, num, prom);
+	}
+}
+
+void ingresar_corredor()
+{
+	system("cls");
+	corredor *aux = new corredor();
+	cout<<"ingrese el nombre del corredor: "; cin>>aux->nombre;
+	cout<<endl<<"ingrese el documento del corredor: "; cin>>aux->num;
+	aux->siguiente = NULL;
+	
+	bool v = false;
+	
+	corredor *aux2 = primero;
+	if(primero==NULL)
+	{
+		primero=aux;
+	}
+	else
+	{
+		while(aux2!=NULL)
+		{
+			if(aux2->num == aux->num)
+			{
+				
+				cout<<endl<<"El corredor ya se encuentra registrado"<<endl;
+				v = true;
+				system("pause");
+				break;
+				
+			}
+			else aux2 = aux2->siguiente;
+		}
+		if(!v)
+		{
+			aux2 = primero;
+			while(aux2->siguiente!=NULL) aux2 = aux2->siguiente;
+			 
+			aux2->siguiente=aux;
+			aux2=NULL;
+			aux=NULL;
+		}
+	}
+		
+	num_corredores++;
+}
+
+void hacer_prueba()
+{
+	system("cls");
+	int n;
+	
+	
+	for(corredor *aux = primero; aux!=NULL; aux=aux->siguiente)
+	{
+		cout<<"nombre: "<<aux->nombre;
+		cout<<endl<<"documento: "<<aux->num;
+		cout<<'\n';
+	}
+	
+	cout<<endl<<endl<<"ingrese el numero del corredor: ";
+	cin>>n;
+	
+	aux = primero;
+	bool encontrado = false;
+	for(primero; primero!=NULL; primero=primero->siguiente)
+	{
+		if(n==primero->num)
+		{
+			int v;
+			
+			float aux_prom = 0;
+			
+			float tiempo, menorTiempo = 0;
+			
+			cout<<endl<<"cuantas vueltas hara el corredor: ";
+			
+			cin>>v;
+			
+			primero->num_vueltas+=v;
+			
+			for(int i =0;i<v;i++){
+				
+				tiempo = 1+rand() % 100;
+				aux_prom += tiempo;	
+				cout<<endl<<"tiempo de la vuelta "<<i+1<<": "<<tiempo;
+				if(i == 0) menorTiempo = tiempo;	
+				if(tiempo < menorTiempo) menorTiempo = tiempo;
+			}
+			
+			
+			primero->tiempo = menorTiempo;
+			aux_prom=aux_prom/v;
+			primero->promedio += aux_prom;
+			if(primero->inArbol == 0) 
+			{
+				primero->inArbol = 1;
+				insertarNodo(arbol, *primero);
+			}
+			else 
+			{
+				actualizarPromedio(arbol, primero->num, aux_prom);
+			}
+			
+			
+			encontrado = true;
+			cout<<endl;
+			system("pause");
+		}
+	}
+	primero=aux;
+	aux=NULL;
+	free(aux);
+	if(!encontrado) 
+	{
+		cout<<endl<<"no se encontro el corredor"<<endl;
+		system("pause");
+	}
+}
+
+void mostrar_corredores()
+{
+	system("cls");
+	cout<<"NUMERO DE CORREDORES: "<<num_corredores<<'\n';
+	for(corredor *aux = primero; aux!=NULL; aux=aux->siguiente)
+	{
+		cout<<"nombre: "<<aux->nombre;
+		cout<<endl<<"corredor: "<<aux->num;
+		cout<<endl<<"numero de vueltas: "<<aux->num_vueltas;
+		cout<<endl<<"promedio: "<<aux->promedio;
+		cout<<endl<<"menor tiempo: "<<aux->tiempo;
+		cout<<endl<<endl;
+	}
+	system("pause");
+}
+
+void mostrar_equilibrio(promedio *arbol_)
+{
+	if(arbol_->irq != NULL) mostrar_equilibrio(arbol_->irq);
+	
+	cout<<"nodo "<<arbol_->corredor.promedio<<" se ubica en el nivel "<<arbol_->nivel<<" y tiene equilibrio: "<<arbol_->equilibrio<<endl<<endl;
+	
+	if(arbol_->der != NULL) mostrar_equilibrio(arbol_->der);
+}
+
+int main()
+{
+	
+	int op;
+	do
+	{
+		system("cls");
+		cout<<"1. ingresar corredor"<<endl<<"2. mostrar corredores"<<endl<<"3. hacer vuelta"<<endl;
+		cout<<"4. mostrar promedios"<<endl<<"5. equilibrar"<<endl<<"6. mostrar equilibrio"<<endl<<"--> ";
+		cin>>op;
+		
+		switch(op)
+		{
+			case 1:
+				ingresar_corredor();
+				
+				break;
+			
+			case 2:
+				mostrar_corredores();
+				break;
+			
+			case 3:
+				hacer_prueba();
+				break;
+			case 4:
+				system("cls");
+				mostrar_promedio(arbol);
+				system("pause");
+				break;
+			case 5:
+				{
+					calcular_equilibrio(arbol);
+					balanceo(arbol);
+					arbol->nivel = 0;
+					actualizarNivelDeNodos(arbol);
+					cout<<endl<<endl<<"NOTA: SI EL ARBOL SIGUE TENIENDO NODOS DESBALANCEADOS, VUELVA A EJECUTAR ESTA FUNCION"<<endl;
+					system("pause");
+				}
+				
+				break;
+				
+			case 6:
+				{
+					system("cls");
+					calcular_equilibrio(arbol);
+					mostrar_equilibrio(arbol);
+					system("pause");
+				}	
+				break;
+			default:
+				system("cls");
+				cout<<endl<<endl<<"la opcion no existe"<<endl<<endl;	
+				system("pause");
+			break;
+		}
+		
+	}while(op!=7);
+} 
